@@ -1,13 +1,13 @@
 <?php
-$host = 'localhost';
-$db = 'formsdb'; // Cleaned the spacing here
-$user = 'root'; 
-$pass = ''; 
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "sample_db";
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
-?>
