@@ -3,6 +3,33 @@ include_once("db_connect.php");
 
 $firstname = $middlename = $lastname = $gender = $dob = "";
 $username = $password = $email = $status = $type = "";
+$is_edit = !empty($_GET['id']);
+
+if ($is_edit) {
+    $id = intval($_GET["id"]);
+
+    $get_sql = "SELECT * FROM tbl_account WHERE id = $id";
+    $result = $conn->query($get_sql);
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $username = $row["username"];
+        $email = $row["email"];
+        $status = $row["status"];
+        $type = $row["type"];
+    }
+
+    $get_sql = "SELECT * FROM tbl_user WHERE account_id = $id";
+    $result = $conn->query($get_sql);
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $firstname = $row["firstname"];
+        $middlename = $row["middlename"];
+        $lastname = $row["lastname"];
+        $gender = $row["gender"];
+        $dob = $row["dob"];
+    }
+}
+
 
 if (isset($_GET["id"])){
 	$get_sql = "SELECT * FROM tbl_account WHERE id = ".$_GET["id"];
@@ -44,24 +71,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 	$type		= test_input($_POST["type"]);
     $date_updated = date("Y-m-d H:i:s");
 
-    if (!empty($_GET['id'])) {
+    if ($is_edit) {
         $id = intval($_GET['id']);
-        $update_sql = "UPDATE tbl_account SET 
+        $password_sql = !empty($password) ? "password='$password'," : "";
+
+        $update_account_sql = "UPDATE tbl_account SET 
             username='$username', 
-            password='$password', 
-            firstname='$firstname', 
-            middlename='$middlename', 
-            lastname='$lastname', 
-            gender='$gender', 
+            $password_sql
+            email='$email', 
+            status='$status', 
+            type='$type', 
             date_updated='$date_updated' 
             WHERE id=$id";
 
-        if ($conn->query($update_sql) === TRUE) {
-			header("Location: form.php");
-			exit();
-            echo "Record updated successfully";
+        if ($conn->query($update_account_sql) === TRUE) {
+            $update_user_sql = "UPDATE tbl_user SET 
+                firstname='$firstname', 
+                middlename='$middlename', 
+                lastname='$lastname', 
+                gender='$gender', 
+                dob='$dob' 
+                WHERE account_id=$id";
+
+            if ($conn->query($update_user_sql) === TRUE) {
+                header("Location: form.php");
+                exit();
+            } else {
+                echo "Error updating user record: " . $conn->error;
+            }
         } else {
-            echo "Error updating record: " . $conn->error;
+            echo "Error updating account record: " . $conn->error;
         }
 
     } else {
@@ -81,6 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         	if ($conn->query($insert_sql) === TRUE) {
             echo "New record created successfully";
+			$username = $password = $firstname = $middlename = $lastname = $gender = $status = $type = $dob = $email = "";
         	} else {
 
             echo "Error inserting record: " . $conn->error;
@@ -135,8 +175,8 @@ function test_input($data) {
 		<td><?php echo $row["email"]; ?></td>
 		<td><?php echo $row["status"]; ?></td>
 		<td><?php echo $row["type"]; ?></td>
-		<td><?php echo date("F j, Y g:i:s", strtotime($row["date_created"])); ?></td>
-		<td><?php echo date("F j, Y g:i:s", strtotime($row["date_updated"])); ?></td>
+		<td><?php echo date("F j, Y g:i:s A", strtotime($row["date_created"])); ?></td>
+		<td><?php echo date("F j, Y g:i:s A", strtotime($row["date_updated"])); ?></td>
 		<td><a href='form.php?id=<?php echo $row["id"]; ?>'>EDIT</a></td>
 	</tr>
 	<?php
@@ -146,6 +186,13 @@ function test_input($data) {
 	$conn->close();
 	?>
 </table><br/>
+
+<?php if ($is_edit): ?>
+    <h2 style="color:blue;">Edit User & Account</h2>
+<?php else: ?>
+    <h2 style="color:green;">Add New User & Account</h2>
+<?php endif; ?>
+
 <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]). (!empty($_GET['id']) ? '?id=' . intval($_GET['id']) : ''); ?>" method="POST">
     
 	<h2>User Information</h2>
@@ -154,8 +201,8 @@ function test_input($data) {
 		Last Name: <input type="text" value="<?php echo $lastname;?>" name="lastname" required><br/>
 		Gender: <select name="gender" required>
 					<option value="" selected>Please select one</option>
-					<option value="Male">Male</option>
-					<option value="Female">Female</option>
+					<option value="0">Male</option>
+					<option value="1">Female</option>
 				</select><br/>
 		Date of Birth: <input type="date" value = "<?php echo $dob;?>" name="dob" required><br/>
     <h2>Account Information</h2>
